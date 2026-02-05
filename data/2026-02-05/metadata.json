@@ -1,0 +1,10 @@
+{
+  "fetch_date": "2026-02-05",
+  "fetch_timestamp": "2026-02-05T06:47:02.196259",
+  "total_models": 392,
+  "api_status": 200,
+  "prompt_options": {
+    "parallel_queries": 1,
+    "prompt_length": 1000
+  }
+}
