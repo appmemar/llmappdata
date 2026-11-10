@@ -5,11 +5,15 @@ Fetches data from Artificial Analysis API and stores it in date-organized folder
 
 Endpoint
     The legacy path ``/api/v2/data/llms/models`` was retired on 4 Nov 2026 and
-    now returns HTTP 410. The documented Pro replacement is
-    ``GET /api/v2/language/models`` (see
-    https://artificialanalysis.ai/data-api/migrate-v2-data and
-    https://artificialanalysis.ai/data-api/docs/reference).
-    Authentication is still the ``x-api-key`` header.
+    now returns HTTP 410. Its replacements are documented at
+    https://artificialanalysis.ai/data-api/migrate-v2-data:
+
+    - Free, any valid key: ``GET /api/v2/language/models/free``
+    - Pro or Commercial only: ``GET /api/v2/language/models``
+
+    This repository has no Pro subscription. The Pro URL returns HTTP 403 for
+    the existing key, so the script calls the free URL. The same
+    ``x-api-key`` header is still used. A new key is not required.
 
 Response schema
     The body no longer includes ``status`` or ``prompt_options``. A successful
@@ -19,13 +23,13 @@ Response schema
     fetched and combined before anything is written. ``data/YYYY-MM-DD/llm_data.json``
     still stores one object whose ``data`` field is the full model list.
 
-    Performance metrics depend on ``prompt_type``. Previous snapshots recorded
-    ``prompt_options`` of prompt_length 1000 and parallel_queries 1, which the
-    current docs map to ``prompt_type=medium``. The API default is ``long``
-    (10,000 input tokens). This script requests ``medium`` so performance
-    fields stay comparable with existing files. Metadata keeps ``api_status``
-    as the HTTP status (the body no longer has ``status``) and sets
-    ``prompt_options`` to null, with ``prompt_type`` recorded alongside it.
+    The free endpoint's only documented query parameter is ``page``. It does
+    not accept ``prompt_type``. Each model includes the public subset: headline
+    and capability indexes, input/output pricing, median performance, and
+    Performance v3 headline means. Pro-only fields such as blended pricing,
+    percentiles, and per-benchmark scores are omitted. Metadata keeps
+    ``api_status`` as the HTTP status and sets ``prompt_options`` and
+    ``prompt_type`` to null.
 """
 
 import os
@@ -35,9 +39,7 @@ from datetime import datetime
 import sys
 from pathlib import Path
 
-API_URL = "https://artificialanalysis.ai/api/v2/language/models"
-# Matches historical prompt_options: 1,000 input tokens, 1 parallel query.
-PROMPT_TYPE = "medium"
+API_URL = "https://artificialanalysis.ai/api/v2/language/models/free"
 MAX_PAGES = 100
 
 
@@ -79,10 +81,7 @@ def fetch_page(api_key: str, page: int) -> tuple:
         "x-api-key": api_key,
         "Accept": "application/json",
     }
-    params = {
-        "prompt_type": PROMPT_TYPE,
-        "page": page,
-    }
+    params = {"page": page}
 
     try:
         response = requests.get(API_URL, headers=headers, params=params, timeout=30)
@@ -184,7 +183,7 @@ def combine_pages(pages: list) -> dict:
     return {
         "tier": first.get("tier"),
         "intelligence_index_version": first.get("intelligence_index_version"),
-        "prompt_type": PROMPT_TYPE,
+        "prompt_type": None,
         "pagination": {
             "page_size": page_size,
             "total_pages": total_pages,
@@ -210,8 +209,8 @@ def save_data_to_file(data: dict, date_str: str, http_status: int) -> None:
     with open(raw_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    # Body no longer includes status or prompt_options. api_status is the HTTP
-    # status, and prompt_type is the query value used for performance metrics.
+    # Body no longer includes status or prompt_options. The free endpoint does
+    # not accept prompt_type. api_status is the HTTP status.
     metadata = {
         "fetch_date": date_str,
         "fetch_timestamp": datetime.now().isoformat(),
