@@ -1,4 +1,4 @@
-name: Fetch LLM Data
+name: Fetch Model Catalog
 
 on:
   schedule:
@@ -22,23 +22,16 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests
+    - name: Create v2 data directory
+      run: mkdir -p v2
     
-    - name: Create data directory
-      run: mkdir -p data
-    
-    - name: Fetch LLM data
-      env:
-        ARTIFICIAL_ANALYSIS_API_KEY: ${{ secrets.ARTIFICIAL_ANALYSIS_API_KEY }}
-      run: python fetch_llm_data.py
+    - name: Fetch models.dev catalog
+      run: python fetch_models_data.py
     
     - name: Check for changes
       id: check_changes
       run: |
-        if [[ -n $(git status --porcelain -- data latest.json) ]]; then
+        if [[ -n $(git status --porcelain -- v2) ]]; then
           echo "changes=true" >> "$GITHUB_OUTPUT"
         else
           echo "changes=false" >> "$GITHUB_OUTPUT"
@@ -49,8 +42,8 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add -- data latest.json
-        git commit -m "Update LLM data for $(date +'%Y-%m-%d')"
+        git add -- v2
+        git commit -m "Update model catalog for $(date +'%Y-%m-%d')"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
