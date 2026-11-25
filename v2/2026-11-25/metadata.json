@@ -1,0 +1,9 @@
+{
+  "fetch_date": "2026-11-25",
+  "fetch_timestamp": "2026-11-25T16:31:24.741910+00:00",
+  "total_models": 656,
+  "api_status": 200,
+  "source_name": "models.dev",
+  "source_url": "https://models.dev/catalog.json?type=all",
+  "source_license": "MIT"
+}
